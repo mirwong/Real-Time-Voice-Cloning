@@ -131,38 +131,44 @@ if __name__ == '__main__':
     while True:
         try:
             # Get the reference audio filepath
-            message = "Reference voice: enter an audio filepath of a voice to be cloned (mp3, " \
-                      "wav, m4a, flac, ...):\n"
-            in_fpath = Path(input(message).replace("\"", "").replace("\'", ""))
+            # message = "Reference voice: enter an audio filepath of a voice to be cloned (mp3, " \
+            #           "wav, m4a, flac, ...):\n"
+            # in_fpath = Path(input(message).replace("\"", "").replace("\'", ""))
 
-            if in_fpath.suffix.lower() == ".mp3" and args.no_mp3_support:
-                print("Can't Use mp3 files please try again:")
-                continue
+            # if in_fpath.suffix.lower() == ".mp3" and args.no_mp3_support:
+            #     print("Can't Use mp3 files please try again:")
+            #     continue
             ## Computing the embedding
             # First, we load the wav using the function that the speaker encoder provides. This is 
             # important: there is preprocessing that must be applied.
-            
-            # The following two methods are equivalent:
-            # - Directly load from the filepath:
-            preprocessed_wav = encoder.preprocess_wav(in_fpath)
-            # - If the wav is already loaded:
-            original_wav, sampling_rate = librosa.load(str(in_fpath))
-            preprocessed_wav = encoder.preprocess_wav(original_wav, sampling_rate)
-            print("Loaded file succesfully")
-            
-            # Then we derive the embedding. There are many functions and parameters that the 
-            # speaker encoder interfaces. These are mostly for in-depth research. You will typically
-            # only use this function (with its default parameters):
-            embed = encoder.embed_utterance(preprocessed_wav)
-            print("Created the embedding")
+
+            in_paths = ["../voices/abby_baltimore.wav",
+                        "../voices/abby_obsession.wav"]
+            embeds = []
+
+            for in_fpath in in_paths:
+                # The following two methods are equivalent:
+                # - Directly load from the filepath:
+                preprocessed_wav = encoder.preprocess_wav(in_fpath)
+                # - If the wav is already loaded:
+                original_wav, sampling_rate = librosa.load(str(in_fpath))
+                preprocessed_wav = encoder.preprocess_wav(original_wav, sampling_rate)
+                print("Loaded file succesfully")
+                
+                # Then we derive the embedding. There are many functions and parameters that the 
+                # speaker encoder interfaces. These are mostly for in-depth research. You will typically
+                # only use this function (with its default parameters):
+                embed = encoder.embed_utterance(preprocessed_wav)
+                print("Created the embedding for {}".format(in_fpath))
+                embeds.append(embed)
             
             
             ## Generating the spectrogram
-            text = input("Write a sentence (+-20 words) to be synthesized:\n")
+            # text = input("Write a sentence (+-20 words) to be synthesized:\n")
+            text = "I looked at the materials the Port to Port killer used and matched those with people who had purchased three or more of those materials in the past week."
             
             # The synthesizer works in batch, so you need to put your data in a list or numpy array
             texts = [text]
-            embeds = [embed]
             # If you know what the attention layer alignments are, you can retrieve them here by
             # passing return_alignments=True
             specs = synthesizer.synthesize_spectrograms(texts, embeds)
@@ -191,16 +197,16 @@ if __name__ == '__main__':
             # Trim excess silences to compensate for gaps in spectrograms (issue #53)
             generated_wav = encoder.preprocess_wav(generated_wav)
             
-            # Play the audio (non-blocking)
-            if not args.no_sound:
-                try:
-                    sd.stop()
-                    sd.play(generated_wav, synthesizer.sample_rate)
-                except sd.PortAudioError as e:
-                    print("\nCaught exception: %s" % repr(e))
-                    print("Continuing without audio playback. Suppress this message with the \"--no_sound\" flag.\n")
-                except:
-                    raise
+            # # Play the audio (non-blocking)
+            # if not args.no_sound:
+            #     try:
+            #         sd.stop()
+            #         sd.play(generated_wav, synthesizer.sample_rate)
+            #     except sd.PortAudioError as e:
+            #         print("\nCaught exception: %s" % repr(e))
+            #         print("Continuing without audio playback. Suppress this message with the \"--no_sound\" flag.\n")
+            #     except:
+            #         raise
                 
             # Save it on the disk
             filename = "demo_output_%02d.wav" % num_generated
